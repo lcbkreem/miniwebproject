@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Teacher Profile - LearniX</title>
+
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css">
+   <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="header">
+   <section class="flex">
+      <a href="home.html" class="logo">LearniX</a>
+      <form action="courses.html" method="get" class="search-form">
+         <input type="text" name="search" required placeholder="search courses..." maxlength="100">
+         <button type="submit" class="fas fa-search"></button>
+      </form>
+      <div class="icons">
+         <div id="menu-btn" class="fas fa-bars"></div>
+         <div id="search-btn" class="fas fa-search"></div>
+         <div id="user-btn" class="fas fa-user"></div>
+         <div id="toggle-btn" class="fas fa-sun"></div>
+      </div>
+      <div class="profile">
+         <img src="images/pic-1.jpg" class="image" alt="">
+         <h3 class="name">Guest</h3>
+         <p class="role">Student</p>
+         <a href="profile.html" class="btn">view profile</a>
+      </div>
+   </section>
+</header>   
+
+<div class="side-bar">
+   <div id="close-btn"><i class="fas fa-times"></i></div>
+   <div class="profile">
+      <img src="images/pic-1.jpg" class="image" alt="">
+      <h3 class="name">Guest</h3>
+      <p class="role">Student</p>
+      <a href="profile.html" class="btn">view profile</a>
+   </div>
+   <nav class="navbar">
+      <a href="home.html"><i class="fas fa-home"></i><span>home</span></a>
+      <a href="dashboard.html"><i class="fas fa-chart-line"></i><span>dashboard</span></a>
+      <a href="courses.html"><i class="fas fa-graduation-cap"></i><span>courses</span></a>
+      <a href="teachers.html"><i class="fas fa-chalkboard-user"></i><span>teachers</span></a>
+      <a href="forum.html"><i class="fas fa-comments"></i><span>forum</span></a>
+      <a href="contact.html"><i class="fas fa-headset"></i><span>contact us</span></a>
+   </nav>
+</div>
+
+<section class="teacher-profile">
+   <h1 class="heading">Teacher Profile</h1>
+   <div class="details">
+      <div class="tutor">
+         <img src="images/pic-2.jpg" id="teacherImg" alt="">
+         <h3 id="teacherName">Loading...</h3>
+         <span id="teacherRole">...</span>
+         <p id="teacherEmail" style="font-size:1.4rem; color:var(--light-color); margin-top:0.5rem;"></p>
+      </div>
+      
+      <div class="flex">
+         <p>Total courses : <span id="totalCourses">0</span></p>
+         <p>Total students : <span id="totalStudents">0</span></p>
+         <p>Total quizzes : <span id="totalQuizzes">0</span></p>
+      </div>
+   </div>
+</section>
+
+<section class="courses">
+   <h1 class="heading">Courses By This Teacher</h1>
+   <div class="box-container" id="coursesGrid">
+      <p class="empty">Loading courses...</p>
+   </div>
+</section>
+
+<script src="js/script.js"></script>
+<script src="js/script.js"></script>
+<script>
+   
+   const API_BASE = 'http://localhost:5000'; 
+
+   document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const teacherId = urlParams.get('id');
+      const token = localStorage.getItem('token'); 
+      
+      const currentUser = getCurrentUser(); 
+
+      if (!teacherId) {
+         document.querySelector('.details').innerHTML = '<p class="empty">No teacher selected.</p>';
+         document.getElementById('coursesGrid').innerHTML = '';
+         return;
+      }
+
+      try {
+         // 1. Fetch Teacher Info
+         const resTeacher = await fetch(`${API_BASE}/api/enseignant/${teacherId}`);
+         if (!resTeacher.ok) throw new Error("Teacher not found");
+         const teacher = await resTeacher.json();
+
+         document.getElementById('teacherName').textContent = `${teacher.prenom || ''} ${teacher.nom || ''}`;
+         document.getElementById('teacherRole').textContent = teacher.role || 'Teacher';
+         document.getElementById('teacherEmail').textContent = teacher.email || '';
+         
+         if (teacher.image) {
+             const cleanPath = teacher.image.replace(/\\/g, '/');
+             const imgUrl = cleanPath.startsWith('http') ? cleanPath : `${API_BASE}/${cleanPath}`;
+             document.getElementById('teacherImg').src = imgUrl;
+         }
+
+         // 2. Fetch ALL Courses
+         const resCourses = await fetch(`${API_BASE}/api/cours`);
+         const allCourses = await resCourses.json();
+
+         // Filter by Teacher
+         const teacherCourses = allCourses.filter(c => {
+             const tId = c.enseignant ? (c.enseignant._id || c.enseignant) : null;
+             return tId === teacherId;
+         });
+
+         // 3. Stats Calculation (Courses & Students)
+         let totalStudents = 0;
+         teacherCourses.forEach(c => {
+             if(Array.isArray(c.etudiants_inscrits)) totalStudents += c.etudiants_inscrits.length;
+         });
+         
+         document.getElementById('totalCourses').textContent = teacherCourses.length;
+         document.getElementById('totalStudents').textContent = totalStudents;
+
+         // 4. Stats Quizzes
+         let totalQuizzes = 0;
+         
+         const quizPromises = teacherCourses.map(course => 
+            fetch(`${API_BASE}/api/quizzes/${course._id}`, {
+               headers: { 'Authorization': `Bearer ${token}` } // 🔑 La clé magique
+            })
+            .then(r => r.json())
+            .catch(() => [])
+         );
+
+         const quizzesResults = await Promise.all(quizPromises);
+         
+         quizzesResults.forEach(quizzes => {
+            if(Array.isArray(quizzes)) totalQuizzes += quizzes.length;
+         });
+         
+         document.getElementById('totalQuizzes').textContent = totalQuizzes;
+
+         // 5. DISPLAY COURSES
+         const grid = document.getElementById('coursesGrid');
+         grid.innerHTML = '';
+
+         if (teacherCourses.length === 0) {
+            grid.innerHTML = '<p class="empty">This teacher has not created any courses yet.</p>';
+         } else {
+            teacherCourses.forEach(course => {
+               let imgUrl = course.image ? (course.image.startsWith('http') ? course.image : `${API_BASE}/${course.image}`) : 'images/thumb-1.png';
+               
+               // Robust Enrollment Check
+               const userId = currentUser ? String(currentUser._id || currentUser.id).trim() : null;
+               let isEnrolled = false;
+               if (userId && Array.isArray(course.etudiants_inscrits)) {
+                   isEnrolled = course.etudiants_inscrits.some(id => String(id).trim() === userId);
+               }
+               
+               let actionBtn;
+               if (isEnrolled || (currentUser && (currentUser.role === 'enseignant' || currentUser.role === 'teacher'))) {
+                  actionBtn = `<a href="playlist.html?id=${course._id}" class="inline-btn">View Course</a>`;
+               } else {
+                  actionBtn = `<button onclick="enrollCourse('${course._id}')" class="inline-btn" style="background-color: var(--main-color);">Enroll Now 🔒</button>`;
+               }
+
+               const box = document.createElement('div');
+               box.className = 'box';
+               box.innerHTML = `
+                  <div class="thumb">
+                     <img src="${imgUrl}" alt="">
+                     <span>${course.specialite || 'General'}</span>
+                  </div>
+                  <h3 class="title">${course.titre}</h3>
+                  ${actionBtn}
+               `;
+               grid.appendChild(box);
+            });
+         }
+
+      } catch (err) {
+         console.error(err);
+         document.querySelector('.teacher-profile').innerHTML = '<p class="empty">Error loading profile.</p>';
+      }
+   });
+
+   // Enrollment Function
+   async function enrollCourse(courseId) {
+      const user = getCurrentUser();
+      const token = localStorage.getItem('token');
+
+      if (!user || !token) {
+         if(confirm("You need to login to enroll. Go to login page?")) {
+            window.location.href = 'login.html';
+         }
+         return;
+      }
+
+      const key = prompt("🔒 Enter the Enrollment Key provided by your teacher:");
+      if (key === null) return; 
+      
+      try {
+         const res = await fetch(`${API_BASE}/api/cours/${courseId}/enroll`, {
+            method: 'POST',
+            headers: { 
+               'Content-Type': 'application/json',
+               'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ 
+               student_id: user._id || user.id,
+               course_id: courseId,
+               enrollment_key: key 
+            })
+         });
+
+         const data = await res.json();
+
+         if (res.ok || data.alreadyEnrolled) {
+            alert(" Enrollment Successful!");
+            window.location.reload(); 
+         } else {
+            alert(" Failed: " + (data.message || "Error"));
+         }
+      } catch (err) {
+         alert("Server Error. Try again.");
+      }
+   }
+</script>
+</body>
+</html>

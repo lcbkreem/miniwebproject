@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Dashboard - LearniX</title>
+
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css">
+   <link rel="stylesheet" href="css/style.css">
+   <style>
+      .dashboard-grid {
+         display: grid;
+         grid-template-columns: repeat(auto-fit, minmax(30rem, 1fr));
+         gap: 2rem;
+         margin-top: 2rem;
+      }
+
+      .stat-card {
+         background: var(--white);
+         padding: 2.5rem;
+         border-radius: var(--radius);
+         border: var(--border);
+         display: flex;
+         align-items: center;
+         gap: 2rem;
+         transition: transform .3s ease;
+      }
+
+      .stat-card:hover {
+         transform: translateY(-5px);
+         box-shadow: var(--shadow);
+      }
+
+      .stat-card i {
+         height: 6rem;
+         width: 6rem;
+         line-height: 6rem;
+         text-align: center;
+         border-radius: var(--radius);
+         background: var(--light-bg);
+         color: var(--main-color);
+         font-size: 2.5rem;
+      }
+
+      .stat-card h3 {
+         font-size: 2.5rem;
+         color: var(--black);
+         font-weight: 800;
+      }
+
+      .stat-card p {
+         font-size: 1.6rem;
+         color: var(--light-color);
+      }
+
+      .quiz-management {
+         background: var(--white);
+         padding: 2rem;
+         border-radius: var(--radius);
+         border: var(--border);
+         margin-top: 2rem;
+      }
+
+      .quiz-item {
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         padding: 1.5rem;
+         border-bottom: var(--border);
+      }
+
+      .quiz-item:last-child {
+         border-bottom: none;
+      }
+
+      .quiz-item .info h4 {
+         font-size: 1.8rem;
+         color: var(--black);
+      }
+
+      .quiz-item .info p {
+         font-size: 1.4rem;
+         color: var(--light-color);
+      }
+
+      .hidden { display: none !important; }
+
+      /* Modal Styles */
+      .modal {
+         position: fixed;
+         top: 0; left: 0;
+         width: 100%; height: 100%;
+         background: rgba(0,0,0,0.8);
+         backdrop-filter: blur(8px); /* Modern blur effect */
+         display: none;
+         align-items: center;
+         justify-content: center;
+         z-index: 3000;
+         padding: 2rem;
+      }
+
+      .modal.active {
+         display: flex;
+      }
+
+      .modal-content {
+         background: var(--card); /* Uses the card background from style.css */
+         padding: 3.5rem;
+         border-radius: var(--radius);
+         width: min(700px, 95%);
+         max-height: 85vh;
+         overflow-y: auto;
+         position: relative;
+         box-shadow: var(--shadow-md);
+         border: var(--border-strong);
+      }
+
+      .close-modal {
+         position: absolute;
+         top: 2rem; right: 2rem;
+         font-size: 2.5rem;
+         cursor: pointer;
+         color: var(--light-color);
+         transition: color .3s ease;
+      }
+      .close-modal:hover { color: var(--red); }
+
+      /* Dashboard Box Visibility */
+      .dashboard .box h3,
+      .courses .box h3 {
+         color: var(--text);
+         font-size: 2rem;
+         font-weight: 800;
+         margin-bottom: 0.5rem;
+      }
+
+      .dashboard .box p,
+      .courses .box p {
+         color: var(--muted);
+         font-size: 1.5rem;
+         line-height: 1.6;
+      }
+
+      /* Modal Visibility Fixes */
+      .modal .heading {
+         color: var(--text) !important;
+         border-bottom: var(--border-strong);
+         font-weight: 800;
+      }
+
+      .modal p {
+         color: var(--text) !important;
+         font-weight: 800; /* Extra bold for visibility */
+         font-size: 1.8rem; /* Larger text */
+         margin-top: 1.5rem;
+         margin-bottom: 1rem;
+         display: block;
+      }
+
+      .modal h3 {
+         color: var(--text);
+         font-size: 2.2rem;
+         font-weight: 800;
+         margin-top: 2rem;
+         margin-bottom: 1.5rem;
+         border-left: 4px solid var(--main-color);
+         padding-left: 1rem;
+      }
+
+      .modal .box::placeholder {
+         color: var(--muted);
+         opacity: 0.7;
+      }
+
+      .modal .box {
+         width: 100%;
+         margin-bottom: 2.5rem;
+         background: var(--bg); /* Use page background for inputs */
+         padding: 1.4rem 1.6rem;
+         border-radius: var(--radius-sm);
+         border: var(--border-strong);
+         font-size: 1.6rem;
+         color: var(--text);
+      }
+
+      .question-form {
+         background: var(--main-soft); /* Using valid soft blue background */
+         border: var(--border-strong);
+         padding: 2rem;
+         margin-bottom: 2.5rem;
+         border-radius: var(--radius-sm);
+         position: relative;
+      }
+
+      .options-grid {
+         display: grid;
+         grid-template-columns: 1fr 1fr;
+         gap: 1.5rem;
+         margin-top: 1rem;
+      }
+
+      .options-grid .box {
+         margin-bottom: 0; /* Override default box margin */
+      }
+      
+      .inline-delete-btn {
+         background-color: var(--red);
+         color: var(--white);
+         padding: 1rem 1.5rem;
+         border-radius: .5rem;
+         font-size: 1.5rem;
+         cursor: pointer;
+      }
+      .inline-delete-btn:hover {
+         background-color: var(--black);
+      }
+   </style>
+</head>
+<body>
+
+<header class="header">
+   <section class="flex">
+      <a href="home.html" class="logo">LearniX</a>
+      <form action="courses.html" method="get" class="search-form">
+         <input type="text" name="search" required placeholder="search courses..." maxlength="100">
+         <button type="submit" class="fas fa-search"></button>
+      </form>
+      <div class="icons">
+         <div id="menu-btn" class="fas fa-bars"></div>
+         <div id="search-btn" class="fas fa-search"></div>
+         <div id="user-btn" class="fas fa-user"></div>
+         <div id="toggle-btn" class="fas fa-sun"></div>
+      </div>
+      <div class="profile">
+         <img src="images/pic-1.jpg" class="image" alt="">
+         <h3 class="name">Guest</h3>
+         <p class="role">Student</p>
+         <a href="profile.html" class="btn">view profile</a>
+      </div>
+   </section>
+</header>   
+
+<div class="side-bar">
+   <div id="close-btn"><i class="fas fa-times"></i></div>
+   <div class="profile">
+      <img src="images/pic-1.jpg" class="image" alt="">
+      <h3 class="name">Guest</h3>
+      <p class="role">Student</p>
+      <a href="profile.html" class="btn">view profile</a>
+   </div>
+   <nav class="navbar">
+      <a href="home.html"><i class="fas fa-home"></i><span>home</span></a>
+      <a href="dashboard.html"><i class="fas fa-chart-line"></i><span>dashboard</span></a>
+      <a href="courses.html"><i class="fas fa-graduation-cap"></i><span>courses</span></a>
+      <a href="teachers.html"><i class="fas fa-chalkboard-user"></i><span>teachers</span></a>
+      <a href="forum.html"><i class="fas fa-comments"></i><span>forum</span></a>
+      <a href="contact.html"><i class="fas fa-headset"></i><span>contact us</span></a>
+   </nav>
+</div>
+
+<section class="dashboard">
+
+   <h1 class="heading">Statistics Overview</h1>
+
+   <div class="dashboard-grid" id="statsContainer">
+      </div>
+
+   <div class="box-container" style="margin-top: 3rem;">
+
+      <div class="box">
+         <h3>Welcome!</h3>
+         <p id="welcomeMsg" style="font-weight: bold; font-size: 2rem; color: var(--main-color);">...</p>
+         <a href="profile.html" class="inline-btn">view profile</a>
+      </div>
+
+      <div class="box teacher-only hidden">
+         <h3>Quick Actions</h3>
+         <p>Create new content for your students.</p>
+         <div class="flex-btn">
+             <button class="inline-btn" id="openCreateCourse">Create Course</button>
+             <button class="inline-option-btn" id="openCreateQuiz">Create Quiz</button>
+         </div>
+      </div>
+
+      <div class="box student-only hidden">
+         <h3>My Learning</h3>
+         <p><span id="miniEnrollmentCount">0</span> Enrolled</p><a href="courses.html" class="inline-btn">view courses</a>
+      </div>
+
+   </div>
+
+</section>
+
+<section class="courses">
+   <h1 class="heading" id="coursesHeading">My Courses</h1>
+   <div class="box-container" id="coursesGrid">
+      <p class="empty">Loading...</p>
+   </div>
+
+   <div class="teacher-only hidden" id="teacherQuizSection" style="margin-top: 4rem;">
+      <h1 class="heading">Manage Quizzes</h1>
+      <div class="quiz-management" id="teacherQuizzes">
+         <p class="empty">Loading your quizzes...</p>
+      </div>
+   </div>
+
+   <div class="student-only hidden" id="studentQuizSection" style="margin-top: 4rem;">
+      <h1 class="heading">My Available Quizzes</h1>
+      <div class="quiz-management" id="studentQuizzesGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(30rem, 1fr)); gap:1.5rem; background:transparent; border:none; padding:0;">
+         <p class="empty">Checking for quizzes...</p>
+      </div>
+   </div>
+</section>
+
+<div class="modal" id="courseModal">
+   <div class="modal-content">
+      <i class="fas fa-times close-modal" id="closeCourseModal"></i>
+      <h2 class="heading">Create New Course</h2>
+      <form id="createCourseForm">
+         <p>Course Title <span>*</span></p>
+         <input type="text" id="courseTitre" class="box" placeholder="e.g. Modern Web Development" required>
+
+         <p>Description <span>*</span></p>
+         <textarea id="courseDesc" class="box" placeholder="What will students learn?" required></textarea>
+
+         <p>Specialty / Category <span>*</span></p>
+         <input type="text" id="courseSpecialite" class="box" placeholder="e.g. Front-end, PHP, Design" required>
+
+         <p>Target Audience (Public Cible) <span>*</span></p>
+         <input type="text" id="coursePublic" class="box" placeholder="e.g. L2 Computer Science" required>
+
+         <p>Enrollment Key (Password for course) <span>*</span></p>
+         <input type="text" id="courseKey" class="box" placeholder="Set a secret key" required>
+
+         <p>Course Cover Image <span>*</span></p>
+         <input type="file" id="courseImage" class="box" accept="image/*" required>
+
+         <input type="submit" value="Publish Course" class="btn" style="margin-top: 2rem;">
+      </form>
+   </div>
+</div>
+
+<div class="modal" id="quizModal">
+   <div class="modal-content">
+      <i class="fas fa-times close-modal" id="closeQuizModal"></i>
+      <h2 class="heading">Create New Quiz</h2>
+      <form id="createQuizForm">
+         <p>Select Course <span>*</span></p>
+         <select id="quizCourse" class="box" required></select>
+         
+         <p>Quiz Title <span>*</span></p>
+         <input type="text" id="quizTitle" class="box" placeholder="e.g. HTML Final Test" required>
+
+         <p>Description</p>
+         <textarea id="quizDesc" class="box" placeholder="Briefly describe the quiz..."></textarea>
+
+         <div id="questionsContainer">
+            <h3>Questions</h3>
+            </div>
+
+         <button type="button" id="addQuestionBtn" class="option-btn" style="width: auto;">+ Add Question</button>
+         <input type="submit" value="Save Quiz" class="btn" style="margin-top: 2rem;">
+      </form>
+   </div>
+</div>
+
+<div class="modal" id="videoModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1100; align-items:center; justify-content:center;">
+   <div class="modal-content" style="background:var(--white); padding:2rem; border-radius:.5rem; width:50rem; position:relative;">
+      <i class="fas fa-times" id="closeVideoModal" style="position:absolute; top:1rem; right:1rem; cursor:pointer; font-size:2rem;"></i>
+      <h3 style="font-size:2.5rem; color:var(--black); margin-bottom:1rem;">Add Video</h3>
+      <form id="uploadVideoForm">
+         <input type="hidden" id="videoCourseId">
+         <p style="font-size:1.6rem; margin-bottom:.5rem;">Title</p>
+         <input type="text" id="videoTitle" class="box" style="width:100%; margin-bottom:1rem;" required>
+         <p style="font-size:1.6rem; margin-bottom:.5rem;">File (MP4)</p>
+         <input type="file" id="videoFile" class="box" style="width:100%; margin-bottom:1rem;" accept="video/*" required>
+         <input type="submit" value="Upload" class="btn" style="width:100%;">
+         <p id="uploadStatus" style="font-size:1.4rem; color:var(--main-color); margin-top:1rem; display:none;">Uploading...</p>
+      </form>
+   </div>
+</div>
+
+<script src="js/script.js"></script>
+<script src="js/script.js"></script>
+<script>
+   //  Votre URL Tunnel (Vérifiez qu'elle est toujours active)
+   const API_BASE = 'http://localhost:5000'; 
+
+   document.addEventListener('DOMContentLoaded', async () => {
+      console.log("🚀 Dashboard initializing...");
+
+      // 1. Récupération sécurisée de l'utilisateur
+      let user = null;
+      try {
+          const userStr = localStorage.getItem('user');
+          if (userStr) user = JSON.parse(userStr);
+      } catch(e) { console.error("Erreur lecture user:", e); }
+      
+      // 2. Si pas connecté -> Login
+      if (!user) {
+         console.warn("Non connecté. Redirection...");
+         window.location.href = 'login.html';
+         return;
+      }
+
+      // 3. Affichage du nom
+      const welcomeEl = document.getElementById('welcomeMsg');
+      if (welcomeEl) welcomeEl.textContent = `${user.prenom || ''} ${user.nom || 'User'}`.trim();
+
+      // 4. Détection du Rôle (Normalisé en minuscule)
+      const role = (user.role || "").toLowerCase().trim();
+      console.log("👤 Rôle détecté :", role);
+
+      // Reset de l'interface (On cache tout par défaut)
+      document.querySelectorAll('.teacher-only').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.student-only').forEach(el => el.classList.add('hidden'));
+
+      // 5. Aiguillage Prof vs Étudiant
+      if (role === 'enseignant' || role === 'teacher') {
+         // --- MODE PROFESSEUR ---
+         console.log(">>> Mode Professeur activé");
+         document.querySelectorAll('.teacher-only').forEach(el => el.classList.remove('hidden'));
+         
+         const h = document.getElementById('coursesHeading');
+         if(h) h.textContent = "My Created Courses";
+         
+         setupTeacherActions(user);
+         await loadTeacherDashboard(user);
+
+      } else {
+         // --- MODE ÉTUDIANT (Par défaut) ---
+         console.log(">>> Mode Étudiant activé");
+         document.querySelectorAll('.student-only').forEach(el => el.classList.remove('hidden'));
+         
+         const h = document.getElementById('coursesHeading');
+         if(h) h.textContent = "My Enrolled Courses";
+         
+         await loadStudentDashboard(user);
+      }
+
+      // 6. Gestion du Formulaire Upload Vidéo
+      setupVideoUpload();
+   });
+
+   // ==========================================
+   // 🛠️ FONCTIONS UTILITAIRES & ACTIONS
+   // ==========================================
+
+   function openVideoModal(courseId) {
+      document.getElementById('videoCourseId').value = courseId;
+      document.getElementById('videoModal').style.display = 'flex';
+   }
+
+   function setupVideoUpload() {
+      const videoForm = document.getElementById('uploadVideoForm');
+      const closeVid = document.getElementById('closeVideoModal');
+      const vidModal = document.getElementById('videoModal');
+
+      if(closeVid) closeVid.onclick = () => vidModal.style.display = 'none';
+
+      if(videoForm) {
+         videoForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = videoForm.querySelector('input[type="submit"]');
+            const status = document.getElementById('uploadStatus');
+            
+            btn.disabled = true;
+            btn.value = "Uploading...";
+            if(status) status.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('courseId', document.getElementById('videoCourseId').value);
+            formData.append('title', document.getElementById('videoTitle').value);
+            formData.append('video', document.getElementById('videoFile').files[0]);
+
+            try {
+               const cId = document.getElementById('videoCourseId').value;
+               const token = localStorage.getItem('token');
+               const res = await fetch(`${API_BASE}/api/cours/${cId}/videos`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${token}` },
+                  body: formData
+               });
+               
+               if(res.ok) {
+                  alert("✅ Video uploaded successfully!");
+                  location.reload();
+               } else {
+                  const data = await res.json();
+                  alert("❌ Error: " + (data.message || "Upload failed"));
+               }
+            } catch(err) {
+               console.error(err);
+               alert("❌ Upload failed (Network Error).");
+            } finally {
+               btn.disabled = false;
+               btn.value = "Upload";
+               if(status) status.style.display = 'none';
+            }
+         };
+      }
+   }
+
+   function setupTeacherActions(user) {
+      const courseModal = document.getElementById('courseModal');
+      const quizModal = document.getElementById('quizModal');
+      
+      // Boutons d'ouverture
+      const openCourseBtn = document.getElementById('openCreateCourse');
+      const openQuizBtn = document.getElementById('openCreateQuiz');
+      
+      // Boutons de fermeture
+      const closeCourseBtn = document.getElementById('closeCourseModal');
+      const closeQuizBtn = document.getElementById('closeQuizModal');
+
+      if(openCourseBtn) openCourseBtn.onclick = () => courseModal.classList.add('active');
+      if(closeCourseBtn) closeCourseBtn.onclick = () => courseModal.classList.remove('active');
+
+      if(openQuizBtn) openQuizBtn.onclick = () => quizModal.classList.add('active');
+      if(closeQuizBtn) closeQuizBtn.onclick = () => quizModal.classList.remove('active');
+
+      // Bouton "Ajouter Question"
+      const addQBtn = document.getElementById('addQuestionBtn');
+      const questionsContainer = document.getElementById('questionsContainer');
+      
+      if(addQBtn && questionsContainer) {
+         let qCount = 0;
+         addQBtn.onclick = () => {
+            qCount++;
+            const qDiv = document.createElement('div');
+            qDiv.className = 'question-form';
+            qDiv.innerHTML = `
+               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                  <p style="margin:0; color:var(--main-color); font-weight:bold;">Question ${qCount}</p>
+                  <button type="button" class="inline-delete-btn" onclick="this.parentElement.parentElement.remove()">x</button>
+               </div>
+               <input type="text" name="q_text" class="box" placeholder="Question text" required>
+               <div class="options-grid">
+                  <input type="text" name="opt_0" class="box" placeholder="Option 1" required>
+                  <input type="text" name="opt_1" class="box" placeholder="Option 2" required>
+                  <input type="text" name="opt_2" class="box" placeholder="Option 3" required>
+                  <input type="text" name="opt_3" class="box" placeholder="Option 4" required>
+               </div>
+               <div style="margin-top: 1rem;">
+                  <p>Correct Answer:</p>
+                  <select name="correct" class="box" style="width: auto;">
+                     <option value="0">Option 1</option>
+                     <option value="1">Option 2</option>
+                     <option value="2">Option 3</option>
+                     <option value="3">Option 4</option>
+                  </select>
+               </div>
+            `;
+            questionsContainer.appendChild(qDiv);
+         };
+         // Ajouter une première question par défaut
+         if(questionsContainer.children.length <= 1) addQBtn.click();
+      }
+      
+      // Submit Create Course
+      const courseForm = document.getElementById('createCourseForm');
+      if(courseForm) {
+         courseForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('titre', document.getElementById('courseTitre').value);
+            formData.append('description', document.getElementById('courseDesc').value);
+            formData.append('specialite', document.getElementById('courseSpecialite').value);
+            formData.append('public_cible', document.getElementById('coursePublic').value);
+            formData.append('cle_inscription', document.getElementById('courseKey').value);
+            formData.append('enseignant_id', user._id || user.id);
+            
+            const imgInput = document.getElementById('courseImage');
+            if(imgInput.files[0]) formData.append('image', imgInput.files[0]);
+
+            try {
+               const res = await fetch(`${API_BASE}/api/cours`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${token}` },
+                  body: formData
+               });
+               if(res.ok) { alert("Course Created!"); location.reload(); }
+               else { alert("Error creating course"); }
+            } catch(err) { console.error(err); }
+         };
+      }
+
+      // Submit Create Quiz
+      const quizForm = document.getElementById('createQuizForm');
+      if(quizForm) {
+         quizForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('token');
+            const qForms = document.querySelectorAll('.question-form');
+            const questions = [];
+            
+            qForms.forEach(form => {
+               questions.push({
+                  questionText: form.querySelector('[name="q_text"]').value,
+                  options: [
+                     form.querySelector('[name="opt_0"]').value,
+                     form.querySelector('[name="opt_1"]').value,
+                     form.querySelector('[name="opt_2"]').value,
+                     form.querySelector('[name="opt_3"]').value
+                  ],
+                  correctAnswer: parseInt(form.querySelector('[name="correct"]').value)
+               });
+            });
+
+            const body = {
+               titre: document.getElementById('quizTitle').value,
+               description: document.getElementById('quizDesc').value,
+               cours: document.getElementById('quizCourse').value,
+               enseignant: user._id || user.id,
+               questions: questions
+            };
+
+            try {
+               const res = await fetch(`${API_BASE}/api/quizzes`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify(body)
+               });
+               if(res.ok) { alert("Quiz Created!"); location.reload(); }
+               else { alert("Error creating quiz"); }
+            } catch(err) { console.error(err); }
+         };
+      }
+   }
+
+   // ==========================================
+   //  CHARGEMENT DONNÉES PROFESSEUR
+   // ==========================================
+   async function loadTeacherDashboard(user) {
+      const grid = document.getElementById('coursesGrid');
+      const statsContainer = document.getElementById('statsContainer');
+      const quizList = document.getElementById('teacherQuizzes');
+      const token = localStorage.getItem('token');
+
+      try {
+         const res = await fetch(`${API_BASE}/api/cours`);
+         const allCourses = await res.json();
+
+         // Filtrage Strict
+         const teacherId = String(user._id || user.id);
+         const myCourses = allCourses.filter(c => {
+             const tId = c.enseignant ? (c.enseignant._id || c.enseignant) : null;
+             return tId && String(tId) === teacherId;
+         });
+
+         // Stats
+         let totalStudents = 0;
+         myCourses.forEach(c => totalStudents += (Array.isArray(c.etudiants_inscrits) ? c.etudiants_inscrits.length : 0));
+
+         if(statsContainer) {
+            statsContainer.innerHTML = `
+               <div class="stat-card">
+                  <i class="fas fa-chalkboard"></i>
+                  <div><h3>${myCourses.length}</h3><p>Courses Created</p></div>
+               </div>
+               <div class="stat-card">
+                  <i class="fas fa-users"></i>
+                  <div><h3>${totalStudents}</h3><p>Total Students</p></div>
+               </div>
+               <div class="stat-card">
+                  <i class="fas fa-question-circle"></i>
+                  <div><h3 id="quizCountStat">Loading...</h3><p>Quizzes</p></div>
+               </div>
+            `;
+         }
+
+         // Affichage Cours
+         if(grid) {
+            grid.innerHTML = '';
+            const courseSelect = document.getElementById('quizCourse');
+            if(courseSelect) courseSelect.innerHTML = '<option value="">Select a course</option>';
+
+            if(myCourses.length === 0) {
+               grid.innerHTML = '<p class="empty">No courses created yet.</p>';
+            } else {
+               myCourses.forEach(course => {
+                  let imgUrl = course.image ? (course.image.startsWith('http') ? course.image : `${API_BASE}/${course.image}`) : 'images/thumb-1.png';
+                  const box = document.createElement('div');
+                  box.className = 'box';
+                  box.innerHTML = `
+                     <div class="thumb">
+                        <img src="${imgUrl}" alt="">
+                        <span>${course.specialite || 'General'}</span>
+                     </div>
+                     <h3 class="title">${course.titre}</h3>
+                     <div class="flex-btn">
+                        <a href="playlist.html?id=${course._id}" class="inline-option-btn">View</a>
+                        <button onclick="openVideoModal('${course._id}')" class="inline-btn" style="background-color:#8e44ad;">+ Vid</button>
+                        <button onclick="deleteCourse('${course._id}')" class="inline-delete-btn"><i class="fas fa-trash"></i></button>
+                     </div>
+                  `;
+                  grid.appendChild(box);
+
+                  // Remplir la liste pour créer des quiz
+                  if(courseSelect) {
+                     const opt = document.createElement('option');
+                     opt.value = course._id;
+                     opt.textContent = course.titre;
+                     courseSelect.appendChild(opt);
+                  }
+               });
+            }
+         }
+
+         // Chargement Quiz
+         if(quizList) {
+            quizList.innerHTML = '';
+            let totalQuizzes = 0;
+            const promises = myCourses.map(c => 
+               fetch(`${API_BASE}/api/quizzes/${c._id}`, { headers: {'Authorization': `Bearer ${token}`} })
+               .then(r => r.json()).catch(() => [])
+            );
+            const results = await Promise.all(promises);
+            
+            results.forEach((quizzes, idx) => {
+               if(Array.isArray(quizzes) && quizzes.length > 0) {
+                  totalQuizzes += quizzes.length;
+                  const cTitle = myCourses[idx].titre;
+                  quizzes.forEach(quiz => {
+                     const div = document.createElement('div');
+                     div.className = 'quiz-item';
+                     div.innerHTML = `
+                        <div class="info">
+                           <h4>${quiz.titre}</h4>
+                           <p>Course: ${cTitle} | ${quiz.questions.length} Qs</p>
+                        </div>
+                        <div class="btns">
+                           <button class="inline-delete-btn" onclick="deleteQuiz('${quiz._id}')"><i class="fas fa-trash"></i></button>
+                        </div>
+                     `;
+                     quizList.appendChild(div);
+                  });
+               }
+            });
+            document.getElementById('quizCountStat').textContent = totalQuizzes;
+            if(totalQuizzes === 0) quizList.innerHTML = '<p class="empty">No quizzes created.</p>';
+         }
+
+      } catch (err) { console.error(err); }
+   }
+
+   // ==========================================
+   //  CHARGEMENT DONNÉES ÉTUDIANT
+   // ==========================================
+  //  CHARGEMENT DONNÉES ÉTUDIANT (Mise à jour)
+   async function loadStudentDashboard(user) {
+      const grid = document.getElementById('coursesGrid');
+      const statsContainer = document.getElementById('statsContainer');
+      const quizSection = document.getElementById('studentQuizSection');
+      const token = localStorage.getItem('token');
+
+      try {
+         // 1. Cours Inscrits
+         const res = await fetch(`${API_BASE}/api/cours/enrolled`, {
+             headers: { 'Authorization': `Bearer ${token}` }
+         });
+         const enrolledCourses = await res.json();
+
+         // 🔥 AJOUT ICI : Mise à jour du petit chiffre dans la sidebar "My Learning"
+         const miniCount = document.getElementById('miniEnrollmentCount');
+         if(miniCount) {
+             miniCount.textContent = enrolledCourses.length;
+         }
+
+         // 2. Stats (Cartes principales)
+         if(statsContainer) {
+            statsContainer.innerHTML = `
+               <div class="stat-card">
+                  <i class="fas fa-graduation-cap"></i>
+                  <div><h3>${enrolledCourses.length}</h3><p>Active Courses</p></div>
+               </div>
+               <div class="stat-card">
+                  <i class="fas fa-tasks"></i>
+                  <div><h3 id="studentQuizCount">0</h3><p>Available Quizzes</p></div>
+               </div>
+            `;
+         }
+
+         // 3. Affichage Grille
+         if(grid) {
+            grid.innerHTML = '';
+            if(enrolledCourses.length === 0) {
+               grid.innerHTML = '<p class="empty">You have not enrolled in any courses yet.</p>';
+            } else {
+               enrolledCourses.forEach(course => {
+                  let imgUrl = course.image ? (course.image.startsWith('http') ? course.image : `${API_BASE}/${course.image}`) : 'images/thumb-1.png';
+                  const box = document.createElement('div');
+                  box.className = 'box';
+                  box.innerHTML = `
+                     <div class="thumb">
+                        <img src="${imgUrl}" alt="">
+                        <span>${course.specialite || 'General'}</span>
+                     </div>
+                     <h3 class="title">${course.titre}</h3>
+                     <a href="playlist.html?id=${course._id}" class="inline-btn">Watch Now</a>
+                  `;
+                  grid.appendChild(box);
+               });
+            }
+         }
+
+         // 4. Charger Quiz Étudiant
+         if(enrolledCourses.length > 0 && quizSection) {
+            quizSection.classList.remove('hidden');
+            await loadStudentQuizzes(enrolledCourses, token);
+         }
+
+      } catch (err) { console.error(err); }
+   }
+   async function loadStudentQuizzes(courses, token) {
+      const quizGrid = document.getElementById('studentQuizzesGrid');
+      if(!quizGrid) return;
+      
+      quizGrid.innerHTML = '';
+      let totalQuizzes = 0;
+
+      const promises = courses.map(c => 
+         fetch(`${API_BASE}/api/quizzes/${c._id}`, { headers: {'Authorization': `Bearer ${token}`} })
+         .then(r => r.json()).catch(() => [])
+      );
+      const results = await Promise.all(promises);
+
+      results.forEach((quizzes, idx) => {
+         if(Array.isArray(quizzes) && quizzes.length > 0) {
+            totalQuizzes += quizzes.length;
+            const cTitle = courses[idx].titre;
+            quizzes.forEach(quiz => {
+               const box = document.createElement('div');
+               box.className = 'box';
+               box.style.border = "var(--border)";
+               box.style.padding = "2rem";
+               box.style.background = "var(--white)";
+               box.innerHTML = `
+                  <h3 style="font-size:1.6rem; margin-bottom:1rem;">${quiz.titre}</h3>
+                  <p style="font-size:1.4rem; color:var(--light-color); margin-bottom:1.5rem;">
+                     Course: <span style="color:var(--main-color);">${cTitle}</span>
+                  </p>
+                  <a href="take_quiz.html?id=${quiz._id}" class="inline-btn" style="width:100%; text-align:center;">Start Quiz</a>
+               `;
+               quizGrid.appendChild(box);
+            });
+         }
+      });
+      
+      const countEl = document.getElementById('studentQuizCount');
+      if(countEl) countEl.textContent = totalQuizzes;
+      if(totalQuizzes === 0) quizGrid.innerHTML = '<p class="empty">No quizzes available.</p>';
+   }
+
+   // ==========================================
+   //  SUPPRESSION
+   // ==========================================
+   async function deleteQuiz(id) {
+      if(!confirm("Delete this quiz?")) return;
+      const token = localStorage.getItem('token');
+      try {
+         const res = await fetch(`${API_BASE}/api/quizzes/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+         });
+         if(res.ok) { alert("Deleted!"); location.reload(); }
+      } catch(err) { console.error(err); }
+   }
+
+   async function deleteCourse(id) {
+      if(!confirm("Delete course? This cannot be undone.")) return;
+      const token = localStorage.getItem('token');
+      try {
+         const res = await fetch(`${API_BASE}/api/cours/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+         });
+         if(res.ok) { alert("Deleted!"); location.reload(); }
+      } catch(err) { console.error(err); }
+   }
+</script>
+</body>
+</html>

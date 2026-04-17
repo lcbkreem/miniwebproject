@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Register - LearniX</title>
+
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css">
+
+   <link rel="stylesheet" href="css/style.css">
+
+</head>
+<body>
+
+<header class="header">
+   <section class="flex">
+      <a href="home.html" class="logo">LearniX</a>
+
+      <form action="search.html" method="post" class="search-form">
+         <input type="text" name="search_box" required placeholder="search courses..." maxlength="100">
+         <button type="submit" class="fas fa-search"></button>
+      </form>
+
+      <div class="icons">
+         <div id="menu-btn" class="fas fa-bars"></div>
+         <div id="search-btn" class="fas fa-search"></div>
+         <div id="user-btn" class="fas fa-user"></div>
+         <div id="toggle-btn" class="fas fa-sun"></div>
+      </div>
+
+      <div class="profile">
+         <img src="images/pic-1.jpg" class="image" alt="">
+         <h3 class="name">Guest</h3>
+         <p class="role">Student</p>
+         <div class="flex-btn">
+            <a href="login.html" class="option-btn">login</a>
+            <a href="register.html" class="option-btn">register</a>
+         </div>
+      </div>
+   </section>
+</header>   
+
+<div class="side-bar">
+   <div id="close-btn">
+      <i class="fas fa-times"></i>
+   </div>
+
+   <div class="profile">
+      <img src="images/pic-1.jpg" class="image" alt="">
+      <h3 class="name">Guest</h3>
+      <p class="role">Student</p>
+      
+      <div class="flex-btn">
+         <div class="guest-options">
+            <a href="login.html" class="option-btn">login</a>
+            <a href="register.html" class="option-btn">register</a>
+         </div>
+      </div>
+   </div>
+
+   <nav class="navbar">
+      <a href="home.html"><i class="fas fa-home"></i><span>home</span></a>
+      <a href="about.html"><i class="fas fa-question"></i><span>about</span></a>
+      <a href="courses.html"><i class="fas fa-graduation-cap"></i><span>courses</span></a>
+      <a href="teachers.html"><i class="fas fa-chalkboard-user"></i><span>teachers</span></a>
+      <a href="contact.html"><i class="fas fa-headset"></i><span>contact us</span></a>
+   </nav>
+</div>
+
+<section class="form-container">
+
+   <form id="registerForm">
+      <h3>register now</h3>
+      
+      <div class="flex">
+         <div class="col">
+            <p>your name (Nom) <span>*</span></p>
+            <input type="text" name="name" placeholder="enter your name" required maxlength="50" class="box" id="nom">
+            
+            <p>your surname (Prenom) <span>*</span></p>
+            <input type="text" name="prenom" placeholder="enter your surname" required maxlength="50" class="box" id="prenom">
+
+            <p>your email <span>*</span></p>
+            <input type="email" name="email" placeholder="enter your email" required maxlength="50" class="box" id="email">
+         </div>
+         
+         <div class="col">
+            <p>your password <span>*</span></p>
+            <input type="password" name="pass" placeholder="enter your password" required maxlength="20" class="box" id="password">
+            
+            <p>Student ID / Phone <span>*</span></p>
+            <input type="text" name="cpass" placeholder="Card Number or ID" required maxlength="20" class="box" id="num_carte">
+
+            <div id="studentYearDiv">
+               <p>Year (Annee) <span>*</span></p>
+               <select name="annee" class="box" id="annee">
+                  <option value="L1">L1</option>
+                  <option value="L2">L2</option>
+                  <option value="L3">L3</option>
+                  <option value="M1">M1</option>
+                  <option value="M2">M2</option>
+               </select>
+            </div>
+
+            <p>Role <span>*</span></p>
+            <select name="role" class="box" id="role">
+               <option value="etudiant">Student</option>
+               <option value="enseignant">Teacher</option>
+            </select>
+         </div>
+      </div>
+
+      <input type="submit" value="register new" name="submit" class="btn">
+   </form>
+
+</section>
+
+<script src="js/script.js"></script>
+
+<script>
+   
+   const API_BASE_URL = 'http://localhost:5000';
+
+   document.addEventListener('DOMContentLoaded', () => {
+      const roleSelect = document.getElementById('role');
+      const studentYearDiv = document.getElementById('studentYearDiv');
+      const cardInput = document.getElementById('num_carte');
+
+      // Gestion de l'affichage (Etudiant vs Prof)
+      function toggleFields() {
+         if (!roleSelect || !cardInput) return;
+         if (roleSelect.value === 'enseignant') {
+             if(studentYearDiv) studentYearDiv.style.display = 'none';
+             cardInput.placeholder = "Numéro de Téléphone";
+         } else {
+             if(studentYearDiv) studentYearDiv.style.display = 'block';
+             cardInput.placeholder = "Numéro Carte Étudiant";
+         }
+      }
+      
+      if(roleSelect) {
+         toggleFields();
+         roleSelect.addEventListener('change', toggleFields);
+      }
+
+      // SOUMISSION DU FORMULAIRE
+      const registerForm = document.getElementById('registerForm');
+      if (registerForm) {
+         registerForm.addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+            
+            // 1. Récupération des valeurs
+            const nom = document.getElementById('nom').value;
+            const prenom = document.getElementById('prenom').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            
+            
+            const num_carteElement = document.getElementById('num_carte');
+            const num_carte = num_carteElement ? num_carteElement.value : "";
+
+            const anneeElement = document.getElementById('annee');
+            const annee = anneeElement ? anneeElement.value : "L1";
+
+         
+            const bodyData = { nom, prenom, email, password, role };
+
+         
+            if (role === 'etudiant') {
+            
+               if (!num_carte || !annee) {
+                  alert("Erreur : Veuillez remplir le numéro de carte et l'année !");
+                  return; 
+               }
+               bodyData.num_carte = num_carte;
+               bodyData.annee = annee;
+            } else {
+               if (!num_carte) {
+                   alert(" Erreur : Veuillez remplir le numéro de téléphone !");
+                   return;
+               }
+               bodyData.telephone = num_carte; 
+            }
+
+            console.log(" Envoi au serveur :", bodyData); 
+
+            const submitBtn = document.querySelector('input[type="submit"]');
+            submitBtn.value = "Patientez...";
+            submitBtn.disabled = true;
+
+            try {
+               const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(bodyData)
+               });
+
+               const data = await response.json();
+
+               if (response.ok) {
+                  alert(' Inscription réussie ! Vérifiez vos emails.');
+                  window.location.href = 'login.html';
+               } else {
+                  alert(' Erreur Serveur : ' + (data.message || JSON.stringify(data)));
+               }
+
+            } catch (error) {
+               console.error("ERREUR :", error);
+               alert(' Impossible de contacter le serveur.');
+            } finally {
+               submitBtn.value = "S'inscrire";
+               submitBtn.disabled = false;
+            }
+         });
+      }
+   });
+</script>
+   
+</body>
+</html>

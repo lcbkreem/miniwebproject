@@ -1,0 +1,77 @@
+<section class="form-container">
+
+   <form id="updateProfileForm" enctype="multipart/form-data">
+      <h3>Mettre à jour le profil</h3>
+      
+      <p>Votre nom</p>
+      <input type="text" id="nom" placeholder="Nouveau nom" maxlength="50" class="box">
+      
+      <p>Votre email</p>
+      <input type="email" id="email" placeholder="Nouvel email" maxlength="50" class="box">
+      
+      <p>Ancien mot de passe (Pour confirmer)</p>
+      <input type="password" id="old_pass" placeholder="Entrez votre mot de passe actuel" maxlength="20" class="box">
+      
+      <p>Nouveau mot de passe (Optionnel)</p>
+      <input type="password" id="new_pass" placeholder="Entrez le nouveau mot de passe" maxlength="20" class="box">
+      
+      <p>Photo de profil</p>
+      <input type="file" id="image" accept="image/*" class="box">
+      
+      <input type="submit" value="Mettre à jour" class="btn" name="submit">
+   </form>
+
+</section>
+
+<script src="js/script.js"></script>
+<script>
+   const API_BASE = 'http://localhost:5000'; 
+
+   // Charger les infos actuelles
+   document.addEventListener('DOMContentLoaded', () => {
+       const user = getCurrentUser(); // Fonction de script.js
+       if(user) {
+           document.getElementById('nom').value = user.nom || '';
+           document.getElementById('email').value = user.email || '';
+       }
+   });
+
+   document.getElementById('updateProfileForm').addEventListener('submit', async (e) => {
+       e.preventDefault();
+       const token = localStorage.getItem('token');
+       
+       const formData = new FormData();
+       formData.append('nom', document.getElementById('nom').value);
+       formData.append('email', document.getElementById('email').value);
+       
+       const oldPass = document.getElementById('old_pass').value;
+       const newPass = document.getElementById('new_pass').value;
+       const imageFile = document.getElementById('image').files[0];
+
+       if(oldPass) formData.append('old_password', oldPass);
+       if(newPass) formData.append('new_password', newPass);
+       if(imageFile) formData.append('image', imageFile);
+
+       try {
+           const res = await fetch(`${API_BASE}/api/auth/update`, { // Vérifie que cette route existe Backend
+               method: 'PUT',
+               headers: { 'Authorization': `Bearer ${token}` },
+               body: formData
+           });
+
+           const data = await res.json();
+           
+           if(res.ok) {
+               alert("Profil mis à jour !");
+               // Mise à jour du localStorage avec les nouvelles infos
+               localStorage.setItem('user', JSON.stringify(data));
+               window.location.reload();
+           } else {
+               alert("Erreur: " + data.message);
+           }
+       } catch(err) {
+           console.error(err);
+           alert("Erreur de connexion");
+       }
+   });
+</script>

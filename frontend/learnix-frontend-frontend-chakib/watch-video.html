@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Watch Video</title>
+
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css">
+   <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="header">
+   <section class="flex">
+      <a href="home.html" class="logo">LearniX</a>
+      <form action="courses.html" method="get" class="search-form">
+         <input type="text" name="search" required placeholder="search courses..." maxlength="100">
+         <button type="submit" class="fas fa-search"></button>
+      </form>
+      <div class="icons">
+         <div id="menu-btn" class="fas fa-bars"></div>
+         <div id="search-btn" class="fas fa-search"></div>
+         <div id="user-btn" class="fas fa-user"></div>
+         <div id="toggle-btn" class="fas fa-sun"></div>
+      </div>
+      <div class="profile">
+         <img src="images/pic-1.jpg" class="image" alt="">
+         <h3 class="name">User</h3>
+         <p class="role">Student</p>
+         <a href="profile.html" class="btn">view profile</a>
+      </div>
+   </section>
+</header>
+
+<div class="side-bar">
+   <div id="close-btn"><i class="fas fa-times"></i></div>
+   <div class="profile">
+      <img src="images/pic-1.jpg" class="image" alt="">
+      <h3 class="name">User</h3>
+      <p class="role">Student</p>
+      <a href="profile.html" class="btn">view profile</a>
+   </div>
+   <nav class="navbar">
+      <a href="home.html"><i class="fas fa-home"></i><span>home</span></a>
+      <a href="dashboard.html"><i class="fas fa-chart-line"></i><span>dashboard</span></a>
+      <a href="about.html"><i class="fas fa-question"></i><span>about</span></a>
+      <a href="courses.html"><i class="fas fa-graduation-cap"></i><span>courses</span></a>
+      <a href="teachers.html"><i class="fas fa-chalkboard-user"></i><span>teachers</span></a>
+      <a href="forum.html"><i class="fas fa-comments"></i><span>forum</span></a>
+      <a href="contact.html"><i class="fas fa-headset"></i><span>contact us</span></a>
+   </nav>
+</div>
+
+<section class="watch-video">
+
+   <div class="video-container">
+      <div class="video">
+         <video src="" controls poster="" id="mainVideo" autoplay></video>
+      </div>
+      <h3 class="title" id="videoTitle">Loading...</h3>
+      
+      <div class="info">
+         <p class="date"><i class="fas fa-calendar"></i><span id="videoDate">...</span></p>
+         <p class="date"><i class="fas fa-heart"></i><span>44 likes</span></p>
+      </div>
+
+      <div class="tutor">
+         <img src="images/pic-2.jpg" alt="" id="tutorImage">
+         <div>
+            <h3 id="tutorName">Teacher</h3>
+            <span id="tutorSpecialty">Specialty</span>
+         </div>
+      </div>
+
+      <form action="" method="post" class="flex">
+         <a href="playlist.html" class="inline-btn" id="backToPlaylist">view playlist</a>
+         <button><i class="far fa-heart"></i><span>like</span></button>
+      </form>
+
+      <p class="description" id="courseDesc">
+         Course description loading...
+      </p>
+   </div>
+
+</section>
+
+<script src="js/script.js"></script>
+<script>
+   
+   const API_BASE = 'http://localhost:5000'; 
+
+   document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Récupérer les paramètres de l'URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const courseId = urlParams.get('courseId');
+      const videoId = urlParams.get('videoId'); // Peut être un ID ou un index (0, 1...)
+
+      if (!courseId) {
+         alert("Lien invalide (ID manquant)");
+         window.location.href = 'courses.html';
+         return;
+      }
+
+      // Bouton retour
+      document.getElementById('backToPlaylist').href = `playlist.html?id=${courseId}`;
+
+      try {
+         // 2. Chercher le cours complet
+         const res = await fetch(`${API_BASE}/api/cours/${courseId}`);
+         if (!res.ok) throw new Error("Erreur chargement cours");
+         const course = await res.json();
+
+         // 3. Infos du Prof
+         if(course.enseignant) {
+            document.getElementById('tutorName').textContent = `${course.enseignant.nom} ${course.enseignant.prenom}`;
+            document.getElementById('tutorImage').src = course.enseignant.image ? 
+               (course.enseignant.image.startsWith('http') ? course.enseignant.image : `${API_BASE}/${course.enseignant.image}`) : 'images/pic-2.jpg';
+         }
+         document.getElementById('courseDesc').textContent = course.description;
+         
+         // 4. TROUVER LA VIDÉO
+         let video = null;
+         
+         // On cherche soit par ID (_id) soit par Index (si videoId est un chiffre simple comme 0, 1)
+         if (course.contenu && course.contenu.length > 0) {
+             // Si videoId est un nombre (index), on prend directement l'élément du tableau
+             if (!isNaN(videoId) && videoId < course.contenu.length) {
+                 video = course.contenu[videoId];
+             } else {
+                 // Sinon on cherche par _id
+                 video = course.contenu.find(v => v._id === videoId);
+             }
+         }
+
+         if (!video) {
+             // Si on ne trouve pas la vidéo demandée, on joue la première par défaut
+             if(course.contenu.length > 0) video = course.contenu[0];
+             else throw new Error("Aucune vidéo dans ce cours");
+         }
+
+         // 5. CHARGER LE LECTEUR
+         document.getElementById('videoTitle').textContent = video.titre;
+         
+         // Construire l'URL de la vidéo
+         const videoUrl = video.url.startsWith('http') ? video.url : `${API_BASE}/${video.url}`;
+         document.getElementById('mainVideo').src = videoUrl;
+
+         // Poster (Image du cours)
+         const posterUrl = course.image ? (course.image.startsWith('http') ? course.image : `${API_BASE}/${course.image}`) : 'images/thumb-1.png';
+         document.getElementById('mainVideo').poster = posterUrl;
+
+         document.getElementById('videoDate').textContent = new Date().toLocaleDateString();
+
+      } catch (err) {
+         console.error(err);
+         alert("Impossible de charger la vidéo : " + err.message);
+      }
+   });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>All Courses - LearniX</title>
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css">
+   <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="header">
+   <section class="flex">
+      <a href="home.html" class="logo">LearniX</a>
+      <form action="courses.html" method="get" class="search-form">
+         <input type="text" name="search" required placeholder="search courses..." maxlength="100">
+         <button type="submit" class="fas fa-search"></button>
+      </form>
+      <div class="icons">
+         <div id="menu-btn" class="fas fa-bars"></div>
+         <div id="search-btn" class="fas fa-search"></div>
+         <div id="user-btn" class="fas fa-user"></div>
+         <div id="toggle-btn" class="fas fa-sun"></div>
+      </div>
+      <div class="profile">
+         <img src="images/pic-1.jpg" class="image" alt="">
+         <h3 class="name">Guest</h3>
+         <p class="role">Student</p>
+         <a href="profile.html" class="btn">view profile</a>
+      </div>
+   </section>
+</header>   
+
+<div class="side-bar">
+   <div id="close-btn"><i class="fas fa-times"></i></div>
+   <div class="profile">
+      <img src="images/pic-1.jpg" class="image" alt="">
+      <h3 class="name">Guest</h3>
+      <p class="role">Student</p>
+      <a href="profile.html" class="btn">view profile</a>
+   </div>
+   <nav class="navbar">
+      <a href="home.html"><i class="fas fa-home"></i><span>home</span></a>
+      <a href="dashboard.html"><i class="fas fa-chart-line"></i><span>dashboard</span></a>
+      <a href="courses.html"><i class="fas fa-graduation-cap"></i><span>courses</span></a>
+      <a href="teachers.html"><i class="fas fa-chalkboard-user"></i><span>teachers</span></a>
+      <a href="forum.html"><i class="fas fa-comments"></i><span>forum</span></a>
+      <a href="contact.html"><i class="fas fa-headset"></i><span>contact us</span></a>
+   </nav>
+</div>
+
+<section class="courses">
+   <h1 class="heading">Available Courses</h1>
+   <div class="box-container" id="coursesContainer">
+      <p style="text-align:center;">Loading courses...</p>
+   </div>
+</section>
+
+<script src="js/script.js"></script>
+<script>
+   
+   const API_BASE = 'http://localhost:5000'; 
+
+   document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchQuery = urlParams.get('search');
+      if(searchQuery) document.querySelector('[name="search"]').value = searchQuery;
+
+      const grid = document.getElementById('coursesContainer');
+      const user = getCurrentUser(); // Depuis script.js
+
+      try {
+         // 1. Récupérer tous les cours
+         const res = await fetch(`${API_BASE}/api/cours`);
+         let courses = await res.json();
+
+         // 2. Filtrage Recherche
+         if (searchQuery) {
+            const term = searchQuery.toLowerCase();
+            courses = courses.filter(c => c.titre.toLowerCase().includes(term));
+            document.querySelector('.heading').textContent = `Search: "${searchQuery}"`;
+         }
+
+         if (courses.length === 0) {
+            grid.innerHTML = '<p class="empty">No courses found!</p>';
+            return;
+         }
+
+         // 3. Affichage
+         grid.innerHTML = courses.map(course => {
+             // Correction image
+             const imgUrl = course.image ? (course.image.startsWith('http') ? course.image : `${API_BASE}/${course.image}`) : 'images/thumb-1.png';
+             const teacherName = course.enseignant ? (course.enseignant.nom || course.enseignant.prenom ? `${course.enseignant.nom} ${course.enseignant.prenom || ''}` : 'Teacher') : 'Unknown';
+             const teacherImg = (course.enseignant && course.enseignant.image) ? `${API_BASE}/${course.enseignant.image}` : 'images/pic-2.jpg';
+
+             // Vérifier si déjà inscrit (si connecté)
+             const isEnrolled = user && course.etudiants_inscrits && course.etudiants_inscrits.includes(user._id || user.id);
+
+             return `
+               <div class="box">
+                  <div class="tutor">
+                     <img src="${teacherImg}" alt="">
+                     <div class="info">
+                        <h3>${teacherName}</h3>
+                        <span>${new Date(course.createdAt || Date.now()).toLocaleDateString()}</span>
+                     </div>
+                  </div>
+                  <div class="thumb">
+                     <img src="${imgUrl}" alt="">
+                     <span>${course.specialite || 'General'}</span>
+                  </div>
+                  <h3 class="title">${course.titre}</h3>
+                  
+                  ${isEnrolled 
+                     ? `<a href="playlist.html?id=${course._id}" class="inline-btn">Continue Learning</a>`
+                     : `<button onclick="enrollCourse('${course._id}')" class="inline-btn" style="background-color: var(--main-color);">Enroll Now 🔒</button>`
+                  }
+               </div>
+            `;
+         }).join('');
+
+      } catch (err) {
+         console.error(err);
+         grid.innerHTML = '<p class="empty">Error loading courses.</p>';
+      }
+   });
+
+   // FONCTION D'INSCRIPTION AVEC CLÉ
+   async function enrollCourse(courseId) {
+      const user = getCurrentUser();
+      const token = localStorage.getItem('token');
+
+      if (!user || !token) {
+         if(confirm("You need to login to enroll. Go to login page?")) {
+            window.location.href = 'login.html';
+         }
+         return;
+      }
+
+      // 1. Demander la clé
+      const key = prompt(" Enter the Enrollment Key provided by your teacher:");
+      if (key === null) return; // Annulé
+      if (key.trim() === "") {
+         alert("Key is required!");
+         return;
+      }
+
+      // 2. Envoyer au backend
+      try {
+         const res = await fetch(`${API_BASE}/api/cours/${courseId}/enroll`, {
+            method: 'POST',
+            headers: { 
+               'Content-Type': 'application/json',
+               'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ 
+               student_id: user._id || user.id,
+               course_id: courseId,
+               enrollment_key: key 
+            })
+         });
+
+         const data = await res.json();
+
+         if (res.ok) {
+            alert(" Enrollment Successful! Welcome to the course.");
+            window.location.href = `playlist.html?id=${courseId}`;
+         } else {
+            alert(" Failed: " + data.message);
+         }
+         if (searchQuery) {
+            const term = searchQuery.toLowerCase().trim();
+            
+            courses = courses.filter(c => {
+               // CRASH PROTECTION: Use || "" to handle missing data
+               const title = (c.titre || "").toLowerCase();
+               const specialite = (c.specialite || "").toLowerCase();
+               const teacherName = c.enseignant && c.enseignant.nom ? c.enseignant.nom.toLowerCase() : "";
+
+               return title.includes(term) || 
+                      specialite.includes(term) || 
+                      teacherName.includes(term);
+            });
+            
+            const heading = document.querySelector('.heading');
+            if(heading) heading.textContent = `Results for "${searchQuery}"`;
+         }
+      } catch (err) {
+         alert("Server Error. Try again.");
+      }
+   }
+</script>
+</body>
+</html>
